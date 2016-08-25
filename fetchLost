@@ -1,0 +1,123 @@
+package kentech.com.kidfinder;
+
+import android.app.NotificationManager;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.media.RingtoneManager;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.support.v7.app.NotificationCompat;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+
+import cz.msebera.android.httpclient.Header;
+
+public class LostGallery extends AppCompatActivity {
+    ListView list;
+    ArrayList<Item> data;
+     CustomAdapter adapter;
+    ProgressBar bar;
+    TextView tvMajina;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_lost_gallery);
+        getSupportActionBar().setTitle("Lost Kids");
+        list= (ListView) findViewById(R.id.listViewLost);
+        data=new ArrayList<Item>();
+         bar= (ProgressBar) findViewById(R.id.progressBarLost);
+        adapter=new CustomAdapter(this,data);
+        tvMajina= (TextView) findViewById(R.id.tvName);
+        list.setAdapter(adapter);
+        fetch();
+        list.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                //Item x=data.get(position);
+                final String[] options={"Mark as Reconnected","Dismiss"};
+                AlertDialog.Builder dialog=new AlertDialog.Builder(LostGallery.this);
+                dialog.setTitle("Choose Option");
+                dialog.setItems(options, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (options[which].equals("Mark as Reconnected")){
+//                          tvMajina.setText("kamepatikana");
+                            Toast.makeText(getApplicationContext(),"Kamepatikana",Toast.LENGTH_SHORT).show();
+//                            tvMajina.setBackgroundColor(Color.BLUE);
+                        }
+                        else if (options[which].equals("Dismiss")){
+                            dialog.dismiss();
+                        }
+                    }
+                });
+                dialog.show();
+                return false;
+            }
+        });
+        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Item x=data.get(position);
+                Intent openDetails=new Intent(LostGallery.this,Details.class);
+                openDetails.putExtra("name",x.getName());
+                openDetails.putExtra("gender",x.getGender());
+                openDetails.putExtra("imageUrl",x.getImgUrl());
+                openDetails.putExtra("contact",x.getContact());
+                startActivity(openDetails);
+                Toast.makeText(getApplicationContext(),x.getName(),Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    private void fetch(){
+        String url="http://www.apphive.co.ke/kidfinder/fetchLost.php";
+        AsyncHttpClient client=new AsyncHttpClient();
+        client.get(url, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+               String json=new String(responseBody);
+                try {
+                    JSONArray array=new JSONArray(json);
+                    for (int i=0; i<array.length();i++){
+                        JSONObject obj=array.getJSONObject(i);
+                        String name=obj.getString("name");
+                        String gender=obj.getString("gender");
+                        String age=obj.getString("age");
+                        String id=obj.getString("id");
+                        String imgUrl=obj.getString("imgUrl");
+                        String Contact=obj.getString("parent_contact");
+                        Item x=new Item(id,name,gender,age,Contact,imgUrl);
+                        data.add(x);
+                    }
+                    adapter.notifyDataSetChanged();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                bar.setVisibility(View.INVISIBLE);
+            }
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                Toast.makeText(getApplicationContext(),"Something bad has happened.Make sure you are connected", Toast.LENGTH_LONG).show();
+                bar.setVisibility(View.INVISIBLE);
+                Intent backToPrevPage=new Intent(LostGallery.this,FoundActivity.class);
+                startActivity(backToPrevPage);
+            }
+        });
+    }
+}
