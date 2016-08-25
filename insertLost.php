@@ -10,7 +10,7 @@ require 'connect.php';
 if (isset($_POST["name"])) 
 {extract($_POST);
 	//mysql_select_db("Lost_kid");
-	$sql="INSERT INTO test_lost values('','$name','$gender','$age','$date','$description',	'$parent_name','$parent_contact')";
+	$sql="INSERT INTO test_lost values('','$name','$optradio','$age','$date','$description',	'$parent_name','$parent_contact')";
 	$res=@mysql_query($sql)or die(mysql_error());;
 		//
 	if($res)
